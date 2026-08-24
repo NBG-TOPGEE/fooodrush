@@ -44,22 +44,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         return prev.map((line) =>
           line.menuItemId === item.id
-            ? { ...line, quantity: line.quantity + quantity, note: note ?? line.note }
+            ? { ...line, quantity: line.quantity + quantity, ...(note ? { note } : {}) }
             : line,
         );
       }
-      return [
-        ...prev,
-        {
-          menuItemId: item.id,
-          restaurantId: item.restaurantId,
-          name: item.name,
-          price: item.price,
-          imageUrl: item.imageUrl,
-          quantity,
-          note,
-        },
-      ];
+      const line: CartLine = {
+        menuItemId: item.id,
+        restaurantId: item.restaurantId,
+        name: item.name,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        quantity,
+        ...(note ? { note } : {}),
+      };
+      return [...prev, line];
     });
   }, []);
 
