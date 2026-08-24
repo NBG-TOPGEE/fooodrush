@@ -48,18 +48,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : line,
         );
       }
-      return [
-        ...prev,
-        {
-          menuItemId: item.id,
-          restaurantId: item.restaurantId,
-          name: item.name,
-          price: item.price,
-          imageUrl: item.imageUrl,
-          quantity,
-          note,
-        },
-      ];
+      const line: CartLine = {
+        menuItemId: item.id,
+        restaurantId: item.restaurantId,
+        name: item.name,
+        price: item.price,
+        imageUrl: item.imageUrl,
+        quantity,
+        ...(note ? { note } : {}),
+      };
+      return [...prev, line];
     });
   }, []);
 

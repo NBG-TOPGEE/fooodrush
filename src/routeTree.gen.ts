@@ -18,7 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as RestaurantsRouteImport } from './routes/restaurants'
+import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -66,15 +66,15 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RestaurantsRoute = RestaurantsRouteImport.update({
-  id: '/restaurants',
-  path: '/restaurants',
+const RestaurantsIndexRoute = RestaurantsIndexRouteImport.update({
+  id: '/restaurants/',
+  path: '/restaurants/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RestaurantsIdRoute = RestaurantsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => RestaurantsRoute,
+  id: '/restaurants/$id',
+  path: '/restaurants/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -87,8 +87,8 @@ export interface FileRoutesByFullPath {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -100,8 +100,8 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/restaurants': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -114,8 +114,8 @@ export interface FileRoutesById {
   '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -129,8 +129,8 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/register'
-    | '/restaurants'
     | '/restaurants/$id'
+    | '/restaurants/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -142,8 +142,8 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/register'
-    | '/restaurants'
     | '/restaurants/$id'
+    | '/restaurants'
   id:
     | '__root__'
     | '/'
@@ -155,8 +155,8 @@ export interface FileRouteTypes {
     | '/orders'
     | '/profile'
     | '/register'
-    | '/restaurants'
     | '/restaurants/$id'
+    | '/restaurants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -169,7 +169,8 @@ export interface RootRouteChildren {
   OrdersRoute: typeof OrdersRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
-  RestaurantsRoute: typeof RestaurantsRouteWithChildren
+  RestaurantsIdRoute: typeof RestaurantsIdRoute
+  RestaurantsIndexRoute: typeof RestaurantsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -237,34 +238,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/restaurants': {
-      id: '/restaurants'
+    '/restaurants/': {
+      id: '/restaurants/'
       path: '/restaurants'
-      fullPath: '/restaurants'
-      preLoaderRoute: typeof RestaurantsRouteImport
+      fullPath: '/restaurants/'
+      preLoaderRoute: typeof RestaurantsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/$id': {
       id: '/restaurants/$id'
-      path: '/$id'
+      path: '/restaurants/$id'
       fullPath: '/restaurants/$id'
       preLoaderRoute: typeof RestaurantsIdRouteImport
-      parentRoute: typeof RestaurantsRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface RestaurantsRouteChildren {
-  RestaurantsIdRoute: typeof RestaurantsIdRoute
-}
-
-const RestaurantsRouteChildren: RestaurantsRouteChildren = {
-  RestaurantsIdRoute: RestaurantsIdRoute,
-}
-
-const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
-  RestaurantsRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -276,7 +265,8 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersRoute: OrdersRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
-  RestaurantsRoute: RestaurantsRouteWithChildren,
+  RestaurantsIdRoute: RestaurantsIdRoute,
+  RestaurantsIndexRoute: RestaurantsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
