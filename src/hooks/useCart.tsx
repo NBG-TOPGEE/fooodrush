@@ -44,7 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         return prev.map((line) =>
           line.menuItemId === item.id
-            ? { ...line, quantity: line.quantity + quantity, note: note ?? line.note }
+            ? { ...line, quantity: line.quantity + quantity, ...(note ? { note } : {}) }
             : line,
         );
       }
