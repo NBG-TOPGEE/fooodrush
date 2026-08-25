@@ -8,7 +8,11 @@ import { RestaurantCard } from "@/components/RestaurantCard";
 import { categoriesQuery, restaurantsQuery } from "@/hooks/queries";
 import { useFavorites } from "@/hooks/useFavorites";
 
-type DiscoverySearch = { q?: string; category?: string; sort?: string };
+type DiscoverySearch = {
+  q: string | undefined;
+  category: string | undefined;
+  sort: string;
+};
 
 const SORTS = [
   { value: "nearest", label: "Nearest" },
@@ -19,9 +23,9 @@ const SORTS = [
 
 export const Route = createFileRoute("/restaurants/")({
   validateSearch: (search: Record<string, unknown>): DiscoverySearch => ({
-    q: typeof search.q === "string" && search.q ? search.q : undefined,
-    category: typeof search.category === "string" && search.category ? search.category : undefined,
-    sort: typeof search.sort === "string" && search.sort ? search.sort : "nearest",
+    q: typeof search["q"] === "string" && search["q"] ? search["q"] : undefined,
+    category: typeof search["category"] === "string" && search["category"] ? search["category"] : undefined,
+    sort: typeof search["sort"] === "string" && search["sort"] ? search["sort"] : "nearest",
   }),
   head: () => ({
     meta: [
