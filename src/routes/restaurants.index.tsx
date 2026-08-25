@@ -18,11 +18,13 @@ const SORTS = [
 ] as const;
 
 export const Route = createFileRoute("/restaurants/")({
-  validateSearch: (search: Record<string, unknown>): DiscoverySearch => ({
-    q: typeof search.q === "string" && search.q ? search.q : undefined,
-    category: typeof search.category === "string" && search.category ? search.category : undefined,
-    sort: typeof search.sort === "string" && search.sort ? search.sort : "nearest",
-  }),
+  validateSearch: (search: Record<string, unknown>): DiscoverySearch => {
+    const result: DiscoverySearch = { sort: "nearest" };
+    if (typeof search["q"] === "string" && search["q"]) result.q = search["q"];
+    if (typeof search["category"] === "string" && search["category"]) result.category = search["category"];
+    if (typeof search["sort"] === "string" && search["sort"]) result.sort = search["sort"];
+    return result;
+  },
   head: () => ({
     meta: [
       { title: "Browse Lagos restaurants — FoodRush" },
