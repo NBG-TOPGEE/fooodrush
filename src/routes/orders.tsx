@@ -51,6 +51,16 @@ function mergeLastOrder(history: Order[]): Order[] {
   return [last, ...history];
 }
 
+function dedupe(orders: Order[]): Order[] {
+  const seen = new Set<string>();
+  return orders.filter((order) => {
+    const key = order.reference || order.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export const Route = createFileRoute("/orders")({
   head: () => ({
     meta: [
