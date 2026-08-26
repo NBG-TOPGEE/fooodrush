@@ -22,12 +22,14 @@ function paymentLabel(order: Order) {
   return method ? PAYMENT_LABELS[method] ?? method : "Card";
 }
 
-function readHistory(): Order[] {
+function readHistory(): Order[] | null {
   try {
     const raw = window.localStorage.getItem(HISTORY_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Order[];
       if (Array.isArray(parsed)) return parsed;
+    } else if (raw === null) {
+      return null;
     }
   } catch {
     /* storage unavailable */
