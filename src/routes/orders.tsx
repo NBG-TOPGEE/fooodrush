@@ -74,17 +74,20 @@ function OrdersPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    let history = readHistory();
-    // Seed demo history once so the page isn't empty on first visit.
-    if (history.length === 0) {
+    const stored = readHistory();
+    let history: Order[];
+    if (stored === null) {
+      // Seed demo history only on the very first visit (key absent).
       history = [...mockOrders];
       try {
         window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       } catch {
         /* storage unavailable */
       }
+    } else {
+      history = stored;
     }
-    setOrders(mergeLastOrder(history));
+    setOrders(dedupe(mergeLastOrder(history)));
     setLoaded(true);
   }, []);
 
