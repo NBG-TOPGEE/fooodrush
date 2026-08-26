@@ -61,7 +61,7 @@ function dedupe(orders: Order[]): Order[] {
   });
 }
 
-export const Route = createFileRoute("/orders")({
+export const Route = createFileRoute("/orders/")({
   head: () => ({
     meta: [
       { title: "Your orders — FoodRush" },
