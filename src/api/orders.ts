@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type { Order } from "@/data/types";
+import { buildOrder, persistOrder, type OrderDraft } from "./orders.local";
 
 export type PlaceOrderPayload = {
   restaurantId: string;
@@ -28,4 +29,21 @@ export async function placeOrder(payload: PlaceOrderPayload) {
 export async function cancelOrder(id: string) {
   const { data } = await api.post<Order>(`/orders/${id}/cancel`);
   return data;
+}
+
+/**
+ * Order submission used by /checkout.
+ *
+ * Today it creates the order locally (demo mock persistence) so the customer
+ * flow works end to end. Backend integration = replace the body with:
+ *
+ *   return placeOrder(payload)
+ *
+ * and keep the same return type (Order).
+ */
+export async function submitOrder(draft: OrderDraft): Promise<Order> {
+  const order = buildOrder(draft);
+  await new Promise((resolve) => setTimeout(resolve, 550));
+  persistOrder(order);
+  return order;
 }

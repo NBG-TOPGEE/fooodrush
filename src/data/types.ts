@@ -49,6 +49,8 @@ export type CartLine = {
   note?: string;
 };
 
+export type PaymentMethod = "card" | "transfer" | "cash";
+
 export type OrderStatus =
   | "pending"
   | "confirmed"
