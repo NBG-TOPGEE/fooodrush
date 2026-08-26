@@ -22,12 +22,14 @@ function paymentLabel(order: Order) {
   return method ? PAYMENT_LABELS[method] ?? method : "Card";
 }
 
-function readHistory(): Order[] {
+function readHistory(): Order[] | null {
   try {
     const raw = window.localStorage.getItem(HISTORY_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Order[];
       if (Array.isArray(parsed)) return parsed;
+    } else if (raw === null) {
+      return null;
     }
   } catch {
     /* storage unavailable */
@@ -47,6 +49,16 @@ function mergeLastOrder(history: Order[]): Order[] {
   const key = (order: Order) => order.reference || order.id;
   if (history.some((order) => key(order) === key(last!))) return history;
   return [last, ...history];
+}
+
+function dedupe(orders: Order[]): Order[] {
+  const seen = new Set<string>();
+  return orders.filter((order) => {
+    const key = order.reference || order.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export const Route = createFileRoute("/orders")({
@@ -72,17 +84,20 @@ function OrdersPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    let history = readHistory();
-    // Seed demo history once so the page isn't empty on first visit.
-    if (history.length === 0) {
+    const stored = readHistory();
+    let history: Order[];
+    if (stored === null) {
+      // Seed demo history only on the very first visit (key absent).
       history = [...mockOrders];
       try {
         window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
       } catch {
         /* storage unavailable */
       }
+    } else {
+      history = stored;
     }
-    setOrders(mergeLastOrder(history));
+    setOrders(dedupe(mergeLastOrder(history)));
     setLoaded(true);
   }, []);
 
