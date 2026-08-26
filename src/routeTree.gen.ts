@@ -16,9 +16,9 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
-import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
 
@@ -57,11 +57,6 @@ const OrderConfirmationRoute = OrderConfirmationRouteImport.update({
   path: '/order-confirmation',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OrdersRoute = OrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -70,6 +65,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersIndexRoute = OrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RestaurantsIndexRoute = RestaurantsIndexRouteImport.update({
@@ -91,10 +91,10 @@ export interface FileRoutesByFullPath {
   '/favorites': typeof FavoritesRoute
   '/login': typeof LoginRoute
   '/order-confirmation': typeof OrderConfirmationRoute
-  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/orders/': typeof OrdersIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -105,10 +105,10 @@ export interface FileRoutesByTo {
   '/favorites': typeof FavoritesRoute
   '/login': typeof LoginRoute
   '/order-confirmation': typeof OrderConfirmationRoute
-  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/orders': typeof OrdersIndexRoute
   '/restaurants': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesById {
@@ -120,10 +120,10 @@ export interface FileRoutesById {
   '/favorites': typeof FavoritesRoute
   '/login': typeof LoginRoute
   '/order-confirmation': typeof OrderConfirmationRoute
-  '/orders': typeof OrdersRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/orders/': typeof OrdersIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRouteTypes {
@@ -136,10 +136,10 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/login'
     | '/order-confirmation'
-    | '/orders'
     | '/profile'
     | '/register'
     | '/restaurants/$id'
+    | '/orders/'
     | '/restaurants/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,10 +150,10 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/login'
     | '/order-confirmation'
-    | '/orders'
     | '/profile'
     | '/register'
     | '/restaurants/$id'
+    | '/orders'
     | '/restaurants'
   id:
     | '__root__'
@@ -164,10 +164,10 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/login'
     | '/order-confirmation'
-    | '/orders'
     | '/profile'
     | '/register'
     | '/restaurants/$id'
+    | '/orders/'
     | '/restaurants/'
   fileRoutesById: FileRoutesById
 }
@@ -179,10 +179,10 @@ export interface RootRouteChildren {
   FavoritesRoute: typeof FavoritesRoute
   LoginRoute: typeof LoginRoute
   OrderConfirmationRoute: typeof OrderConfirmationRoute
-  OrdersRoute: typeof OrdersRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   RestaurantsIdRoute: typeof RestaurantsIdRoute
+  OrdersIndexRoute: typeof OrdersIndexRoute
   RestaurantsIndexRoute: typeof RestaurantsIndexRoute
 }
 
@@ -237,13 +237,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderConfirmationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/orders': {
-      id: '/orders'
-      path: '/orders'
-      fullPath: '/orders'
-      preLoaderRoute: typeof OrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -256,6 +249,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/': {
+      id: '/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof OrdersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/': {
@@ -283,10 +283,10 @@ const rootRouteChildren: RootRouteChildren = {
   FavoritesRoute: FavoritesRoute,
   LoginRoute: LoginRoute,
   OrderConfirmationRoute: OrderConfirmationRoute,
-  OrdersRoute: OrdersRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   RestaurantsIdRoute: RestaurantsIdRoute,
+  OrdersIndexRoute: OrdersIndexRoute,
   RestaurantsIndexRoute: RestaurantsIndexRoute,
 }
 export const routeTree = rootRouteImport
