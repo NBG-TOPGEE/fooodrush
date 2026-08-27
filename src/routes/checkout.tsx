@@ -49,9 +49,19 @@ function CheckoutPage() {
   const [addressId, setAddressId] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState({ label: "", street: "", area: "", instructions: "" });
   const [useNew, setUseNew] = useState(false);
-  const [payment, setPayment] = useState<string>("card");
-  const [placing, setPlacing] = useState(false);
+  const [payment, setPayment] = useState<PaymentMethod | null>("card");
+  const [formError, setFormError] = useState<string | null>(null);
 
+  const placeOrderMutation = useMutation({
+    mutationFn: (draft: OrderDraft) => submitOrder(draft),
+    onSuccess: (order) => {
+      cart.clear();
+      navigate({ to: "/order-confirmation" });
+      void order;
+    },
+  });
+
+  const submitting = placeOrderMutation.isPending;
   const list = addresses.data ?? [];
   const selectedId = addressId ?? list.find((item) => item.isDefault)?.id ?? list[0]?.id ?? null;
   const deliveryFee = restaurant.data?.deliveryFee ?? 800;
