@@ -4,12 +4,11 @@ import { CheckCircle2, Clock, MapPin, PartyPopper, Receipt, ShoppingBag } from "
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { Order } from "@/data/types";
+import { readLastOrder } from "@/api/orders.local";
+import type { Order, PaymentMethod } from "@/data/types";
 import { formatDateTime, formatNaira } from "@/utils/format";
 
-const STORAGE_KEY = "foodrush.lastOrder";
-
-const PAYMENT_LABELS: Record<string, string> = {
+const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   card: "Card",
   transfer: "Bank transfer",
   cash: "Cash on delivery",
@@ -37,12 +36,7 @@ function OrderConfirmationPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setOrder(JSON.parse(raw) as Order);
-    } catch {
-      /* storage unavailable */
-    }
+    setOrder(readLastOrder());
     setLoaded(true);
   }, []);
 
@@ -81,11 +75,7 @@ function OrderConfirmationPage() {
     );
   }
 
-  const paymentLabel =
-    (order as Order & { paymentMethod?: string }).paymentMethod
-      ? PAYMENT_LABELS[(order as Order & { paymentMethod?: string }).paymentMethod!] ??
-        (order as Order & { paymentMethod?: string }).paymentMethod!
-      : "Card";
+  const paymentLabel = order.paymentMethod ? PAYMENT_LABELS[order.paymentMethod] : "Card";
 
   return (
     <AppShell>

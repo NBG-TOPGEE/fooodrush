@@ -1,19 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Banknote, CreditCard, Landmark, MapPin, Plus } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { AlertCircle, Banknote, CreditCard, Landmark, Loader2, MapPin, Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
+import { QuantitySelector } from "@/components/QuantitySelector";
+import { submitOrder } from "@/api/orders";
+import type { OrderDraft } from "@/api/orders.local";
+import type { PaymentMethod } from "@/data/types";
 import { addressesQuery, restaurantQuery } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { formatDeliveryWindow, formatNaira } from "@/utils/format";
 
-const PAYMENT_METHODS = [
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; hint: string; icon: typeof CreditCard }[] = [
   { id: "card", label: "Card", hint: "Pay securely with Visa, Mastercard or Verve", icon: CreditCard },
   { id: "transfer", label: "Bank transfer", hint: "Get a one-time account number", icon: Landmark },
   { id: "cash", label: "Cash on delivery", hint: "Pay the rider when your food arrives", icon: Banknote },
-] as const;
+];
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -45,9 +49,19 @@ function CheckoutPage() {
   const [addressId, setAddressId] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState({ label: "", street: "", area: "", instructions: "" });
   const [useNew, setUseNew] = useState(false);
-  const [payment, setPayment] = useState<string>("card");
-  const [placing, setPlacing] = useState(false);
+  const [payment, setPayment] = useState<PaymentMethod | null>("card");
+  const [formError, setFormError] = useState<string | null>(null);
 
+  const placeOrderMutation = useMutation({
+    mutationFn: (draft: OrderDraft) => submitOrder(draft),
+    onSuccess: (order) => {
+      cart.clear();
+      navigate({ to: "/order-confirmation" });
+      void order;
+    },
+  });
+
+  const submitting = placeOrderMutation.isPending;
   const list = addresses.data ?? [];
   const selectedId = addressId ?? list.find((item) => item.isDefault)?.id ?? list[0]?.id ?? null;
   const deliveryFee = restaurant.data?.deliveryFee ?? 800;
@@ -80,25 +94,39 @@ function CheckoutPage() {
 
   function placeOrder(event: React.FormEvent) {
     event.preventDefault();
-    setPlacing(true);
+    if (submitting) return; // prevent duplicate submissions
 
-    const address = useNew
-      ? `${newAddress.street}, ${newAddress.area}, Lagos`
-      : (() => {
-          const found = list.find((item) => item.id === selectedId);
-          return found ? `${found.street}, ${found.area}, ${found.city}` : "Lagos";
-        })();
+    if (cart.lines.length === 0) {
+      setFormError("Your cart is empty — add a few dishes before placing an order.");
+      return;
+    }
 
-    const reference = `FR-${Math.floor(100000 + Math.random() * 899999)}`;
-    const order = {
-      id: reference.toLowerCase(),
-      reference,
+    let address: string | null = null;
+    if (useNew) {
+      if (!newAddress.street.trim() || !newAddress.area.trim()) {
+        setFormError("Add a street address and area for your new delivery address.");
+        return;
+      }
+      address = `${newAddress.street.trim()}, ${newAddress.area.trim()}, Lagos`;
+    } else {
+      const found = list.find((item) => item.id === selectedId);
+      if (!found) {
+        setFormError("Select a delivery address to continue.");
+        return;
+      }
+      address = `${found.street}, ${found.area}, ${found.city}`;
+    }
+
+    if (!payment) {
+      setFormError("Choose how you'd like to pay.");
+      return;
+    }
+
+    setFormError(null);
+    placeOrderMutation.mutate({
       restaurantId: cart.restaurantId ?? "",
       restaurantName: restaurant.data?.name ?? "FoodRush kitchen",
       restaurantImage: restaurant.data?.imageUrl ?? "",
-      status: "confirmed" as const,
-      placedAt: new Date().toISOString(),
-      etaMinutes: restaurant.data?.deliveryMinutes[1] ?? 35,
       items: cart.lines.map((line) => ({
         name: line.name,
         quantity: line.quantity,
@@ -110,16 +138,8 @@ function CheckoutPage() {
       total,
       address,
       paymentMethod: payment,
-    };
-
-    try {
-      window.localStorage.setItem("foodrush.lastOrder", JSON.stringify(order));
-    } catch {
-      /* storage unavailable — confirmation falls back to the generic view */
-    }
-
-    cart.clear();
-    navigate({ to: "/order-confirmation" });
+      etaMinutes: restaurant.data?.deliveryMinutes[1] ?? 35,
+    });
   }
 
   return (
@@ -248,11 +268,18 @@ function CheckoutPage() {
                 {restaurant.data.name} · {formatDeliveryWindow(restaurant.data.deliveryMinutes)}
               </p>
             )}
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-4 space-y-3 text-sm">
               {cart.lines.map((line) => (
-                <li key={line.menuItemId} className="flex justify-between gap-3">
-                  <span>
-                    <span className="font-semibold">{line.quantity}×</span> {line.name}
+                <li key={line.menuItemId} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{line.name}</span>
+                    <span className="mt-1.5 block">
+                      <QuantitySelector
+                        value={line.quantity}
+                        min={0}
+                        onChange={(value) => cart.setQuantity(line.menuItemId, value)}
+                      />
+                    </span>
                   </span>
                   <span className="shrink-0 font-semibold">{formatNaira(line.price * line.quantity)}</span>
                 </li>
@@ -264,12 +291,30 @@ function CheckoutPage() {
               <Row label="Service fee" value={formatNaira(cart.serviceFee)} />
               <Row label="Total" value={formatNaira(total)} strong />
             </dl>
+            {(formError || placeOrderMutation.isError) && (
+              <p
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-2xl bg-destructive/10 px-3.5 py-3 text-sm font-medium text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>
+                  {formError ?? "We couldn't place your order. Your cart is safe — please try again."}
+                </span>
+              </p>
+            )}
             <button
               type="submit"
-              disabled={placing}
-              className="mt-5 w-full rounded-full bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:opacity-70"
+              disabled={submitting}
+              aria-busy={submitting}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
             >
-              {placing ? "Placing order…" : `Place order · ${formatNaira(total)}`}
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden /> Placing order…
+                </>
+              ) : (
+                `Place order · ${formatNaira(total)}`
+              )}
             </button>
           </div>
         </aside>
