@@ -36,12 +36,7 @@ function OrderConfirmationPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) setOrder(JSON.parse(raw) as Order);
-    } catch {
-      /* storage unavailable */
-    }
+    setOrder(readLastOrder());
     setLoaded(true);
   }, []);
 
