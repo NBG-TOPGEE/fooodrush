@@ -4,12 +4,11 @@ import { CheckCircle2, Clock, MapPin, PartyPopper, Receipt, ShoppingBag } from "
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
-import type { Order } from "@/data/types";
+import { readLastOrder } from "@/api/orders.local";
+import type { Order, PaymentMethod } from "@/data/types";
 import { formatDateTime, formatNaira } from "@/utils/format";
 
-const STORAGE_KEY = "foodrush.lastOrder";
-
-const PAYMENT_LABELS: Record<string, string> = {
+const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   card: "Card",
   transfer: "Bank transfer",
   cash: "Cash on delivery",
