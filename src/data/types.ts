@@ -74,6 +74,7 @@ export type Order = {
   serviceFee: number;
   total: number;
   address: string;
+  paymentMethod?: PaymentMethod;
   rider?: { name: string; phone: string; vehicle: string };
 };
 
