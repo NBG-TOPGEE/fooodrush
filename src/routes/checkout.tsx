@@ -268,11 +268,18 @@ function CheckoutPage() {
                 {restaurant.data.name} · {formatDeliveryWindow(restaurant.data.deliveryMinutes)}
               </p>
             )}
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className="mt-4 space-y-3 text-sm">
               {cart.lines.map((line) => (
-                <li key={line.menuItemId} className="flex justify-between gap-3">
-                  <span>
-                    <span className="font-semibold">{line.quantity}×</span> {line.name}
+                <li key={line.menuItemId} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold">{line.name}</span>
+                    <span className="mt-1.5 block">
+                      <QuantitySelector
+                        value={line.quantity}
+                        min={0}
+                        onChange={(value) => cart.setQuantity(line.menuItemId, value)}
+                      />
+                    </span>
                   </span>
                   <span className="shrink-0 font-semibold">{formatNaira(line.price * line.quantity)}</span>
                 </li>
@@ -284,12 +291,30 @@ function CheckoutPage() {
               <Row label="Service fee" value={formatNaira(cart.serviceFee)} />
               <Row label="Total" value={formatNaira(total)} strong />
             </dl>
+            {(formError || placeOrderMutation.isError) && (
+              <p
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-2xl bg-destructive/10 px-3.5 py-3 text-sm font-medium text-destructive"
+              >
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>
+                  {formError ?? "We couldn't place your order. Your cart is safe — please try again."}
+                </span>
+              </p>
+            )}
             <button
               type="submit"
-              disabled={placing}
-              className="mt-5 w-full rounded-full bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:opacity-70"
+              disabled={submitting}
+              aria-busy={submitting}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
             >
-              {placing ? "Placing order…" : `Place order · ${formatNaira(total)}`}
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden /> Placing order…
+                </>
+              ) : (
+                `Place order · ${formatNaira(total)}`
+              )}
             </button>
           </div>
         </aside>
