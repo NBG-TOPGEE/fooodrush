@@ -94,25 +94,39 @@ function CheckoutPage() {
 
   function placeOrder(event: React.FormEvent) {
     event.preventDefault();
-    setPlacing(true);
+    if (submitting) return; // prevent duplicate submissions
 
-    const address = useNew
-      ? `${newAddress.street}, ${newAddress.area}, Lagos`
-      : (() => {
-          const found = list.find((item) => item.id === selectedId);
-          return found ? `${found.street}, ${found.area}, ${found.city}` : "Lagos";
-        })();
+    if (cart.lines.length === 0) {
+      setFormError("Your cart is empty — add a few dishes before placing an order.");
+      return;
+    }
 
-    const reference = `FR-${Math.floor(100000 + Math.random() * 899999)}`;
-    const order = {
-      id: reference.toLowerCase(),
-      reference,
+    let address: string | null = null;
+    if (useNew) {
+      if (!newAddress.street.trim() || !newAddress.area.trim()) {
+        setFormError("Add a street address and area for your new delivery address.");
+        return;
+      }
+      address = `${newAddress.street.trim()}, ${newAddress.area.trim()}, Lagos`;
+    } else {
+      const found = list.find((item) => item.id === selectedId);
+      if (!found) {
+        setFormError("Select a delivery address to continue.");
+        return;
+      }
+      address = `${found.street}, ${found.area}, ${found.city}`;
+    }
+
+    if (!payment) {
+      setFormError("Choose how you'd like to pay.");
+      return;
+    }
+
+    setFormError(null);
+    placeOrderMutation.mutate({
       restaurantId: cart.restaurantId ?? "",
       restaurantName: restaurant.data?.name ?? "FoodRush kitchen",
       restaurantImage: restaurant.data?.imageUrl ?? "",
-      status: "confirmed" as const,
-      placedAt: new Date().toISOString(),
-      etaMinutes: restaurant.data?.deliveryMinutes[1] ?? 35,
       items: cart.lines.map((line) => ({
         name: line.name,
         quantity: line.quantity,
@@ -124,16 +138,8 @@ function CheckoutPage() {
       total,
       address,
       paymentMethod: payment,
-    };
-
-    try {
-      window.localStorage.setItem("foodrush.lastOrder", JSON.stringify(order));
-    } catch {
-      /* storage unavailable — confirmation falls back to the generic view */
-    }
-
-    cart.clear();
-    navigate({ to: "/order-confirmation" });
+      etaMinutes: restaurant.data?.deliveryMinutes[1] ?? 35,
+    });
   }
 
   return (
