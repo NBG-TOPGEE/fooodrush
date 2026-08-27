@@ -1,19 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Banknote, CreditCard, Landmark, MapPin, Plus } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { AlertCircle, Banknote, CreditCard, Landmark, Loader2, MapPin, Plus } from "lucide-react";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { EmptyState } from "@/components/EmptyState";
+import { QuantitySelector } from "@/components/QuantitySelector";
+import { submitOrder } from "@/api/orders";
+import type { OrderDraft } from "@/api/orders.local";
+import type { PaymentMethod } from "@/data/types";
 import { addressesQuery, restaurantQuery } from "@/hooks/queries";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
 import { formatDeliveryWindow, formatNaira } from "@/utils/format";
 
-const PAYMENT_METHODS = [
+const PAYMENT_METHODS: { id: PaymentMethod; label: string; hint: string; icon: typeof CreditCard }[] = [
   { id: "card", label: "Card", hint: "Pay securely with Visa, Mastercard or Verve", icon: CreditCard },
   { id: "transfer", label: "Bank transfer", hint: "Get a one-time account number", icon: Landmark },
   { id: "cash", label: "Cash on delivery", hint: "Pay the rider when your food arrives", icon: Banknote },
-] as const;
+];
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
