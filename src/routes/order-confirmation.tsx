@@ -75,11 +75,7 @@ function OrderConfirmationPage() {
     );
   }
 
-  const paymentLabel =
-    (order as Order & { paymentMethod?: string }).paymentMethod
-      ? PAYMENT_LABELS[(order as Order & { paymentMethod?: string }).paymentMethod!] ??
-        (order as Order & { paymentMethod?: string }).paymentMethod!
-      : "Card";
+  const paymentLabel = order.paymentMethod ? PAYMENT_LABELS[order.paymentMethod] : "Card";
 
   return (
     <AppShell>
