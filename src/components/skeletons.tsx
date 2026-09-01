@@ -135,8 +135,9 @@ export function ChartSkeleton({ className }: { className?: string }) {
       <Skeleton className="h-4 w-32" />
       <div className="mt-6 flex h-40 items-end gap-2 sm:h-56">
         {[45, 70, 35, 90, 60, 80, 50].map((height, index) => (
-          <Skeleton key={index} className="flex-1 rounded-xl" style-height={height} />
+          <Skeleton key={index} className="flex-1 rounded-xl" style={{ height: `${height}%` }} />
         ))}
+
       </div>
     </div>
   );
