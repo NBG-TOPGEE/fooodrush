@@ -1,4 +1,11 @@
-import type { OrderStatus } from "@/data/types";
+import type { OrderStatus, PaymentMethod } from "@/data/types";
+
+export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  card: "Card",
+  transfer: "Bank transfer",
+  cash: "Cash on delivery",
+};
+
 
 const naira = new Intl.NumberFormat("en-NG", {
   style: "currency",
