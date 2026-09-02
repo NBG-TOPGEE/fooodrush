@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LayoutDashboard } from "lucide-react";
 import { DashboardLayout, DashboardPlaceholder } from "@/components/DashboardLayout";
 
-export const Route = createFileRoute("/admin")({
+export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
       { title: "Overview — FoodRush Admin" },

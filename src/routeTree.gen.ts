@@ -18,10 +18,28 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrderConfirmationRouteImport } from './routes/order-confirmation'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
+import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminRestaurantsRouteImport } from './routes/admin.restaurants'
+import { Route as AdminReviewsRouteImport } from './routes/admin.reviews'
+import { Route as AdminRidersRouteImport } from './routes/admin.riders'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as OrdersIndexRouteImport } from './routes/orders.index'
 import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as RestaurantIndexRouteImport } from './routes/restaurant.index'
+import { Route as RestaurantMenuRouteImport } from './routes/restaurant.menu'
+import { Route as RestaurantOrdersRouteImport } from './routes/restaurant.orders'
+import { Route as RestaurantProfileRouteImport } from './routes/restaurant.profile'
 import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
+import { Route as RiderIndexRouteImport } from './routes/rider.index'
+import { Route as RiderDeliveriesRouteImport } from './routes/rider.deliveries'
+import { Route as RiderEarningsRouteImport } from './routes/rider.earnings'
+import { Route as RiderProfileRouteImport } from './routes/rider.profile'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,6 +86,56 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/admin/analytics',
+  path: '/admin/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCouponsRoute = AdminCouponsRouteImport.update({
+  id: '/admin/coupons',
+  path: '/admin/coupons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/admin/orders',
+  path: '/admin/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/admin/payments',
+  path: '/admin/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRestaurantsRoute = AdminRestaurantsRouteImport.update({
+  id: '/admin/restaurants',
+  path: '/admin/restaurants',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReviewsRoute = AdminReviewsRouteImport.update({
+  id: '/admin/reviews',
+  path: '/admin/reviews',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRidersRoute = AdminRidersRouteImport.update({
+  id: '/admin/riders',
+  path: '/admin/riders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/admin/settings',
+  path: '/admin/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrdersIndexRoute = OrdersIndexRouteImport.update({
   id: '/orders/',
   path: '/orders/',
@@ -78,6 +146,26 @@ const OrdersIdRoute = OrdersIdRouteImport.update({
   path: '/orders/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RestaurantIndexRoute = RestaurantIndexRouteImport.update({
+  id: '/restaurant/',
+  path: '/restaurant/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestaurantMenuRoute = RestaurantMenuRouteImport.update({
+  id: '/restaurant/menu',
+  path: '/restaurant/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestaurantOrdersRoute = RestaurantOrdersRouteImport.update({
+  id: '/restaurant/orders',
+  path: '/restaurant/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RestaurantProfileRoute = RestaurantProfileRouteImport.update({
+  id: '/restaurant/profile',
+  path: '/restaurant/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RestaurantsIndexRoute = RestaurantsIndexRouteImport.update({
   id: '/restaurants/',
   path: '/restaurants/',
@@ -86,6 +174,26 @@ const RestaurantsIndexRoute = RestaurantsIndexRouteImport.update({
 const RestaurantsIdRoute = RestaurantsIdRouteImport.update({
   id: '/restaurants/$id',
   path: '/restaurants/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiderIndexRoute = RiderIndexRouteImport.update({
+  id: '/rider/',
+  path: '/rider/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiderDeliveriesRoute = RiderDeliveriesRouteImport.update({
+  id: '/rider/deliveries',
+  path: '/rider/deliveries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiderEarningsRoute = RiderEarningsRouteImport.update({
+  id: '/rider/earnings',
+  path: '/rider/earnings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RiderProfileRoute = RiderProfileRouteImport.update({
+  id: '/rider/profile',
+  path: '/rider/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -99,10 +207,28 @@ export interface FileRoutesByFullPath {
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/riders': typeof AdminRidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/restaurant/menu': typeof RestaurantMenuRoute
+  '/restaurant/orders': typeof RestaurantOrdersRoute
+  '/restaurant/profile': typeof RestaurantProfileRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/rider/deliveries': typeof RiderDeliveriesRoute
+  '/rider/earnings': typeof RiderEarningsRoute
+  '/rider/profile': typeof RiderProfileRoute
+  '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/restaurant/': typeof RestaurantIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
+  '/rider/': typeof RiderIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,10 +240,28 @@ export interface FileRoutesByTo {
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/riders': typeof AdminRidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/restaurant/menu': typeof RestaurantMenuRoute
+  '/restaurant/orders': typeof RestaurantOrdersRoute
+  '/restaurant/profile': typeof RestaurantProfileRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/rider/deliveries': typeof RiderDeliveriesRoute
+  '/rider/earnings': typeof RiderEarningsRoute
+  '/rider/profile': typeof RiderProfileRoute
+  '/admin': typeof AdminIndexRoute
   '/orders': typeof OrdersIndexRoute
+  '/restaurant': typeof RestaurantIndexRoute
   '/restaurants': typeof RestaurantsIndexRoute
+  '/rider': typeof RiderIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,10 +274,28 @@ export interface FileRoutesById {
   '/order-confirmation': typeof OrderConfirmationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/coupons': typeof AdminCouponsRoute
+  '/admin/orders': typeof AdminOrdersRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/restaurants': typeof AdminRestaurantsRoute
+  '/admin/reviews': typeof AdminReviewsRoute
+  '/admin/riders': typeof AdminRidersRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/orders/$id': typeof OrdersIdRoute
+  '/restaurant/menu': typeof RestaurantMenuRoute
+  '/restaurant/orders': typeof RestaurantOrdersRoute
+  '/restaurant/profile': typeof RestaurantProfileRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/rider/deliveries': typeof RiderDeliveriesRoute
+  '/rider/earnings': typeof RiderEarningsRoute
+  '/rider/profile': typeof RiderProfileRoute
+  '/admin/': typeof AdminIndexRoute
   '/orders/': typeof OrdersIndexRoute
+  '/restaurant/': typeof RestaurantIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
+  '/rider/': typeof RiderIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,10 +309,28 @@ export interface FileRouteTypes {
     | '/order-confirmation'
     | '/profile'
     | '/register'
+    | '/admin/analytics'
+    | '/admin/coupons'
+    | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/restaurants'
+    | '/admin/reviews'
+    | '/admin/riders'
+    | '/admin/settings'
+    | '/admin/users'
     | '/orders/$id'
+    | '/restaurant/menu'
+    | '/restaurant/orders'
+    | '/restaurant/profile'
     | '/restaurants/$id'
+    | '/rider/deliveries'
+    | '/rider/earnings'
+    | '/rider/profile'
+    | '/admin/'
     | '/orders/'
+    | '/restaurant/'
     | '/restaurants/'
+    | '/rider/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,10 +342,28 @@ export interface FileRouteTypes {
     | '/order-confirmation'
     | '/profile'
     | '/register'
+    | '/admin/analytics'
+    | '/admin/coupons'
+    | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/restaurants'
+    | '/admin/reviews'
+    | '/admin/riders'
+    | '/admin/settings'
+    | '/admin/users'
     | '/orders/$id'
+    | '/restaurant/menu'
+    | '/restaurant/orders'
+    | '/restaurant/profile'
     | '/restaurants/$id'
+    | '/rider/deliveries'
+    | '/rider/earnings'
+    | '/rider/profile'
+    | '/admin'
     | '/orders'
+    | '/restaurant'
     | '/restaurants'
+    | '/rider'
   id:
     | '__root__'
     | '/'
@@ -177,10 +375,28 @@ export interface FileRouteTypes {
     | '/order-confirmation'
     | '/profile'
     | '/register'
+    | '/admin/analytics'
+    | '/admin/coupons'
+    | '/admin/orders'
+    | '/admin/payments'
+    | '/admin/restaurants'
+    | '/admin/reviews'
+    | '/admin/riders'
+    | '/admin/settings'
+    | '/admin/users'
     | '/orders/$id'
+    | '/restaurant/menu'
+    | '/restaurant/orders'
+    | '/restaurant/profile'
     | '/restaurants/$id'
+    | '/rider/deliveries'
+    | '/rider/earnings'
+    | '/rider/profile'
+    | '/admin/'
     | '/orders/'
+    | '/restaurant/'
     | '/restaurants/'
+    | '/rider/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,10 +409,28 @@ export interface RootRouteChildren {
   OrderConfirmationRoute: typeof OrderConfirmationRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminCouponsRoute: typeof AdminCouponsRoute
+  AdminOrdersRoute: typeof AdminOrdersRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminRestaurantsRoute: typeof AdminRestaurantsRoute
+  AdminReviewsRoute: typeof AdminReviewsRoute
+  AdminRidersRoute: typeof AdminRidersRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   OrdersIdRoute: typeof OrdersIdRoute
+  RestaurantMenuRoute: typeof RestaurantMenuRoute
+  RestaurantOrdersRoute: typeof RestaurantOrdersRoute
+  RestaurantProfileRoute: typeof RestaurantProfileRoute
   RestaurantsIdRoute: typeof RestaurantsIdRoute
+  RiderDeliveriesRoute: typeof RiderDeliveriesRoute
+  RiderEarningsRoute: typeof RiderEarningsRoute
+  RiderProfileRoute: typeof RiderProfileRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
+  RestaurantIndexRoute: typeof RestaurantIndexRoute
   RestaurantsIndexRoute: typeof RestaurantsIndexRoute
+  RiderIndexRoute: typeof RiderIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +498,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/coupons': {
+      id: '/admin/coupons'
+      path: '/admin/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/admin/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/admin/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/restaurants': {
+      id: '/admin/restaurants'
+      path: '/admin/restaurants'
+      fullPath: '/admin/restaurants'
+      preLoaderRoute: typeof AdminRestaurantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reviews': {
+      id: '/admin/reviews'
+      path: '/admin/reviews'
+      fullPath: '/admin/reviews'
+      preLoaderRoute: typeof AdminReviewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/riders': {
+      id: '/admin/riders'
+      path: '/admin/riders'
+      fullPath: '/admin/riders'
+      preLoaderRoute: typeof AdminRidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders/': {
       id: '/orders/'
       path: '/orders'
@@ -276,6 +580,34 @@ declare module '@tanstack/react-router' {
       path: '/orders/$id'
       fullPath: '/orders/$id'
       preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurant/': {
+      id: '/restaurant/'
+      path: '/restaurant'
+      fullPath: '/restaurant/'
+      preLoaderRoute: typeof RestaurantIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurant/menu': {
+      id: '/restaurant/menu'
+      path: '/restaurant/menu'
+      fullPath: '/restaurant/menu'
+      preLoaderRoute: typeof RestaurantMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurant/orders': {
+      id: '/restaurant/orders'
+      path: '/restaurant/orders'
+      fullPath: '/restaurant/orders'
+      preLoaderRoute: typeof RestaurantOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/restaurant/profile': {
+      id: '/restaurant/profile'
+      path: '/restaurant/profile'
+      fullPath: '/restaurant/profile'
+      preLoaderRoute: typeof RestaurantProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants/': {
@@ -292,6 +624,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rider/': {
+      id: '/rider/'
+      path: '/rider'
+      fullPath: '/rider/'
+      preLoaderRoute: typeof RiderIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rider/deliveries': {
+      id: '/rider/deliveries'
+      path: '/rider/deliveries'
+      fullPath: '/rider/deliveries'
+      preLoaderRoute: typeof RiderDeliveriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rider/earnings': {
+      id: '/rider/earnings'
+      path: '/rider/earnings'
+      fullPath: '/rider/earnings'
+      preLoaderRoute: typeof RiderEarningsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rider/profile': {
+      id: '/rider/profile'
+      path: '/rider/profile'
+      fullPath: '/rider/profile'
+      preLoaderRoute: typeof RiderProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -305,10 +665,28 @@ const rootRouteChildren: RootRouteChildren = {
   OrderConfirmationRoute: OrderConfirmationRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminCouponsRoute: AdminCouponsRoute,
+  AdminOrdersRoute: AdminOrdersRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminRestaurantsRoute: AdminRestaurantsRoute,
+  AdminReviewsRoute: AdminReviewsRoute,
+  AdminRidersRoute: AdminRidersRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   OrdersIdRoute: OrdersIdRoute,
+  RestaurantMenuRoute: RestaurantMenuRoute,
+  RestaurantOrdersRoute: RestaurantOrdersRoute,
+  RestaurantProfileRoute: RestaurantProfileRoute,
   RestaurantsIdRoute: RestaurantsIdRoute,
+  RiderDeliveriesRoute: RiderDeliveriesRoute,
+  RiderEarningsRoute: RiderEarningsRoute,
+  RiderProfileRoute: RiderProfileRoute,
+  AdminIndexRoute: AdminIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
+  RestaurantIndexRoute: RestaurantIndexRoute,
   RestaurantsIndexRoute: RestaurantsIndexRoute,
+  RiderIndexRoute: RiderIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
