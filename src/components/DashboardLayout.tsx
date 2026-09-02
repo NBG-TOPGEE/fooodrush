@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 import {
   Bell,
   BarChart3,
@@ -25,11 +25,11 @@ import { RequireRole } from "./RequireRole";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
-type NavItem = { to: string; label: string; Icon: ComponentType<{ className?: string }> };
+type NavItem = { to: LinkProps["to"]; label: string; Icon: ComponentType<{ className?: string }> };
 
 export type DashboardRole = "restaurant" | "rider" | "admin";
 
-const NAV: Record<DashboardRole, { title: string; home: string; items: NavItem[] }> = {
+const NAV: Record<DashboardRole, { title: string; home: LinkProps["to"]; items: NavItem[] }> = {
   restaurant: {
     title: "Restaurant",
     home: "/restaurant",
@@ -82,7 +82,7 @@ export function DashboardLayout({
   title: string;
   description?: string;
   icon?: ReactNode;
-  breadcrumbs?: { label: string; to?: string }[];
+  breadcrumbs?: { label: string; to?: LinkProps["to"] }[];
   actions?: ReactNode;
   notificationCount?: number;
   children: ReactNode;
