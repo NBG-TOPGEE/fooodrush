@@ -1,20 +1,24 @@
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 export function EmptyState({
   emoji = "🍽️",
+  icon: Icon,
   title,
   description,
   action,
 }: {
+  /** Existing API — kept so current screens keep working. */
   emoji?: string;
+  /** Optional Lucide icon; when provided it replaces the emoji. */
+  icon?: ComponentType<{ className?: string }>;
   title: string;
   description?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="rounded-3xl border border-dashed border-border bg-card/60 px-6 py-16 text-center">
-      <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-primary-soft text-3xl">
-        {emoji}
+      <div className="mx-auto grid size-16 place-items-center rounded-2xl bg-primary-soft text-3xl text-primary">
+        {Icon ? <Icon className="size-7" /> : emoji}
       </div>
       <h2 className="mt-5 font-display text-xl font-bold">{title}</h2>
       {description && (
