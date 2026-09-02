@@ -172,10 +172,11 @@ function OrderConfirmationPage() {
           {/* Actions */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
-              to="/orders"
+              to="/orders/$id"
+              params={{ id: order.id }}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5"
             >
-              <ShoppingBag className="size-4" aria-hidden /> Track my order
+              <ShoppingBag className="size-4" aria-hidden /> View order
             </Link>
             <Link
               to="/restaurants"
