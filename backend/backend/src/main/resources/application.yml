@@ -1,0 +1,49 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: foodrush-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/foodrush}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    # 64+ bytes base64-safe secret. Override via JWT_SECRET env var.
+    secret: ${JWT_SECRET:Y2hhbmdlLXRoaXMtc2VjcmV0LWtleS1pbi1wcm9kdWN0aW9uLWl0LW11c3QtYmUtbG9uZy1hbmQtcmFuZG9tLXN0cmluZw==}
+    expiration-ms: 604800000 # 7 days
+  delivery:
+    base-fee: 500
+    rate-per-km: 100
+    service-fee-percent: 0.05
+  paystack:
+    secret-key: ${PAYSTACK_SECRET_KEY:}
+    base-url: https://api.paystack.co
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+  seed:
+    # Set to true to load demo data on startup (dev only).
+    enabled: ${SEED_DATA:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
