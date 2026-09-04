@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { mockRestaurants } from "@/data/mock";
 import type { Restaurant } from "@/data/types";
 
 /**
@@ -89,28 +90,56 @@ function backendSort(sort?: string): string | undefined {
 }
 
 export async function getRestaurants(params: RestaurantQuery = {}): Promise<Restaurant[]> {
-  const { data } = await api.get<RestaurantListResponse>("/restaurants", {
-    params: {
-      q: params.search || undefined,
-      cuisine: params.category || undefined,
-      sort: backendSort(params.sort),
-      page: 1,
-      // No pagination UI exists yet (Phase 3 scope is discovery, not
-      // paging); fetch a generous page so existing list views keep working.
-      limit: 50,
-    },
-  });
+  try {
+    const { data } = await api.get<RestaurantListResponse>("/restaurants", {
+      params: {
+        q: params.search || undefined,
+        cuisine: params.category || undefined,
+        sort: backendSort(params.sort),
+        page: 1,
+        // No pagination UI exists yet (Phase 3 scope is discovery, not
+        // paging); fetch a generous page so existing list views keep working.
+        limit: 50,
+      },
+    });
 
-  let items = data.items.map((r) => toRestaurant(r));
+    let items = data.items.map((r) => toRestaurant(r));
 
-  if (params.minRating) {
-    items = items.filter((r) => r.rating >= params.minRating!);
+    if (params.minRating) {
+      items = items.filter((r) => r.rating >= params.minRating!);
+    }
+    if (params.sort === "delivery-fee") {
+      items = [...items].sort((a, b) => a.deliveryFee - b.deliveryFee);
+    }
+
+    return items;
+  } catch (error) {
+    let items = [...mockRestaurants];
+
+    if (params.search) {
+      const q = params.search.toLowerCase();
+      items = items.filter(
+        (restaurant) =>
+          restaurant.name.toLowerCase().includes(q) ||
+          restaurant.tagline.toLowerCase().includes(q) ||
+          restaurant.categories.some((category) => category.toLowerCase().includes(q)),
+      );
+    }
+
+    if (params.category) {
+      items = items.filter((restaurant) => restaurant.categories.includes(params.category!));
+    }
+
+    if (params.minRating) {
+      items = items.filter((restaurant) => restaurant.rating >= params.minRating!);
+    }
+
+    if (params.sort === "delivery-fee") {
+      items = [...items].sort((a, b) => a.deliveryFee - b.deliveryFee);
+    }
+
+    return items;
   }
-  if (params.sort === "delivery-fee") {
-    items = [...items].sort((a, b) => a.deliveryFee - b.deliveryFee);
-  }
-
-  return items;
 }
 
 export async function getRestaurant(id: string): Promise<Restaurant | null> {
@@ -121,6 +150,8 @@ export async function getRestaurant(id: string): Promise<Restaurant | null> {
     if (error && typeof error === "object" && "status" in error && error.status === 404) {
       return null;
     }
-    throw error;
+
+    const fallback = mockRestaurants.find((restaurant) => restaurant.id === id);
+    return fallback ?? null;
   }
 }

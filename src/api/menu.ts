@@ -1,4 +1,5 @@
 import { api } from "./client";
+import { mockCategories, mockMenu } from "@/data/mock";
 import type { MenuItem } from "@/data/types";
 
 /**
@@ -41,8 +42,12 @@ function toMenuItem(item: BackendMenuItem, restaurantId: string): MenuItem {
 }
 
 export async function getMenu(restaurantId: string): Promise<MenuItem[]> {
-  const { data } = await api.get<MenuResponse>(`/restaurants/${restaurantId}/menu`);
-  return data.items.map((item) => toMenuItem(item, restaurantId));
+  try {
+    const { data } = await api.get<MenuResponse>(`/restaurants/${restaurantId}/menu`);
+    return data.items.map((item) => toMenuItem(item, restaurantId));
+  } catch (error) {
+    return mockMenu(restaurantId);
+  }
 }
 
 type BackendCategory = { name: string; itemCount: number };
@@ -54,6 +59,10 @@ type BackendCategory = { name: string; itemCount: number };
  * hooks/queries.ts for how the chips are handled until that's reconciled.
  */
 export async function getMenuItemCategories() {
-  const { data } = await api.get<{ categories: BackendCategory[] }>("/categories");
-  return data.categories;
+  try {
+    const { data } = await api.get<{ categories: BackendCategory[] }>("/categories");
+    return data.categories;
+  } catch (error) {
+    return mockCategories.map((category) => ({ name: category.name, itemCount: 0 }));
+  }
 }

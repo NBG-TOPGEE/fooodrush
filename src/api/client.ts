@@ -5,7 +5,7 @@ import axios from "axios";
  * Points at the existing Spring Boot REST API. Never hardcode URLs elsewhere.
  */
 export const API_URL =
-  (import.meta.env["VITE_API_URL"] as string | undefined) ?? "http://localhost:8080/api";
+  (import.meta.env["VITE_API_URL"] as string | undefined) ?? "http://localhost:8081/api";
 
 export const TOKEN_KEY = "foodrush.token";
 

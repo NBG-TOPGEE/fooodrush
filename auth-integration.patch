@@ -1,0 +1,573 @@
+From 231ea20cf247156c043934552dc9292b3e817255 Mon Sep 17 00:00:00 2001
+From: NBG-TOPGEE <NBG-TOPGEE@users.noreply.github.com>
+Date: Thu, 27 Aug 2026 00:45:14 +0000
+Subject: [PATCH] Integrate authentication with Spring Boot backend
+
+- Unwrap the backend's {success,data,message,code} envelope in the
+  Axios client and normalize errors into a small ApiError shape.
+- Rewrite src/api/auth.ts to match the real Spring Boot DTOs
+  (RegisterRequest/LoginRequest/User) and map the backend's user
+  shape (numeric id, upper-case role) to the frontend User type.
+  Removed the call to a nonexistent /auth/logout endpoint - the
+  backend is stateless JWT with no server-side logout route.
+- useAuth now validates a persisted session against GET /auth/me on
+  load and signs out cleanly on an invalid/expired token, while
+  keeping the same public interface so Navbar/checkout/__root are
+  unchanged.
+- Implemented the /login and /register pages (previously stubs),
+  wired to the real backend and matching the existing design system.
+
+No other files touched. tsc --noEmit and npm run build both pass;
+the one remaining tsc error (orders.local.ts) is pre-existing on
+main and unrelated to this change.
+---
+ src/api/auth.ts         |  67 ++++++++++++++-----
+ src/api/client.ts       |  53 +++++++++++++--
+ src/hooks/useAuth.tsx   |  71 +++++++++++++++-----
+ src/routes/login.tsx    | 101 +++++++++++++++++++++++++++--
+ src/routes/register.tsx | 139 ++++++++++++++++++++++++++++++++++++++--
+ 5 files changed, 379 insertions(+), 52 deletions(-)
+
+diff --git a/src/api/auth.ts b/src/api/auth.ts
+index 16870fd..d6bd1a4 100644
+--- a/src/api/auth.ts
++++ b/src/api/auth.ts
+@@ -2,35 +2,70 @@ import { api } from "./client";
+ import type { Role, User } from "@/data/types";
+ 
+ /**
+- * Auth calls. Endpoint paths and payload shapes are placeholders — swap them
+- * for the real Spring Boot DTOs when the backend is connected.
++ * Auth calls, matching the real Spring Boot DTOs:
++ *   com.foodrush.dto.Dtos.RegisterRequest / LoginRequest
++ *   com.foodrush.entity.User (id: number, role: CUSTOMER|RESTAURANT|RIDER|ADMIN)
++ *
++ * The backend's User shape doesn't match the frontend's UI-facing `User`
++ * type (numeric id, upper-case role, `name` instead of `fullName`), so
++ * responses are mapped through `toUser` below instead of changing the
++ * shared domain type that Navbar/checkout already depend on.
+  */
+ 
+ export type LoginPayload = { email: string; password: string };
+ export type RegisterPayload = {
+-  fullName: string;
++  name: string;
+   email: string;
+-  phone: string;
+   password: string;
++  phone?: string;
+   role?: Role;
+ };
+-export type AuthResponse = { token: string; user: User };
+ 
+-export async function login(payload: LoginPayload) {
+-  const { data } = await api.post<AuthResponse>("/auth/login", payload);
+-  return data;
++type BackendUser = {
++  id: number;
++  name: string;
++  email: string;
++  phone: string | null;
++  role: "CUSTOMER" | "RESTAURANT" | "RIDER" | "ADMIN";
++  suspended: boolean;
++  createdAt: string;
++  updatedAt: string;
++};
++
++type AuthPayload = { user: BackendUser; token: string };
++export type AuthResult = { user: User; token: string };
++
++function toUser(backendUser: BackendUser): User {
++  return {
++    id: String(backendUser.id),
++    fullName: backendUser.name,
++    email: backendUser.email,
++    phone: backendUser.phone ?? "",
++    role: backendUser.role.toLowerCase() as Role,
++  };
+ }
+ 
+-export async function register(payload: RegisterPayload) {
+-  const { data } = await api.post<AuthResponse>("/auth/register", payload);
+-  return data;
++export async function login(payload: LoginPayload): Promise<AuthResult> {
++  const { data } = await api.post<AuthPayload>("/auth/login", payload);
++  return { user: toUser(data.user), token: data.token };
+ }
+ 
+-export async function me() {
+-  const { data } = await api.get<User>("/auth/me");
+-  return data;
++export async function register(payload: RegisterPayload): Promise<AuthResult> {
++  const { data } = await api.post<AuthPayload>("/auth/register", {
++    name: payload.name,
++    email: payload.email,
++    password: payload.password,
++    phone: payload.phone,
++    role: payload.role?.toUpperCase(),
++  });
++  return { user: toUser(data.user), token: data.token };
+ }
+ 
+-export async function logout() {
+-  await api.post("/auth/logout");
++export async function me(): Promise<User> {
++  const { data } = await api.get<BackendUser>("/auth/me");
++  return toUser(data);
+ }
++
++// Note: the backend uses stateless JWT auth and has no /auth/logout route.
++// Sessions end purely client-side — see useAuth().signOut, which clears the
++// stored token and user without calling the API. Do not add a call here.
+diff --git a/src/api/client.ts b/src/api/client.ts
+index 508e254..33d00f2 100644
+--- a/src/api/client.ts
++++ b/src/api/client.ts
+@@ -1,4 +1,4 @@
+-import axios from "axios";
++import axios, { type AxiosError } from "axios";
+ 
+ /**
+  * Single Axios instance for the FoodRush frontend.
+@@ -9,6 +9,33 @@ export const API_URL =
+ 
+ export const TOKEN_KEY = "foodrush.token";
+ 
++/**
++ * Every Spring Boot response is wrapped:
++ *   success: { success: true, data: ... }
++ *   error:   { success: false, message: "...", code: "...", details?: {...} }
++ * See com.foodrush.common.ApiResponse. The response interceptor below
++ * unwraps `data` so every api/*.ts function can work with the plain payload
++ * (matching its declared type) instead of the envelope.
++ */
++type BackendEnvelope<T> = {
++  success: boolean;
++  data: T;
++  message?: string | null;
++  code?: string | null;
++  details?: Record<string, string> | null;
++};
++
++export type ApiError = {
++  message: string;
++  code?: string;
++  status?: number;
++  details?: Record<string, string>;
++};
++
++export function isApiError(error: unknown): error is ApiError {
++  return typeof error === "object" && error !== null && "message" in error;
++}
++
+ export function getToken(): string | null {
+   if (typeof window === "undefined") return null;
+   return window.localStorage.getItem(TOKEN_KEY);
+@@ -39,13 +66,27 @@ api.interceptors.request.use((config) => {
+   return config;
+ });
+ 
+-// Drop an expired/invalid session so the UI can send the user back to /login.
++// Unwrap the backend envelope on success; drop an expired/invalid session and
++// normalize errors to ApiError on failure.
+ api.interceptors.response.use(
+-  (response) => response,
+-  (error) => {
+-    if (error?.response?.status === 401) {
++  (response) => {
++    const body = response.data as BackendEnvelope<unknown> | undefined;
++    if (body && typeof body === "object" && "success" in body) {
++      response.data = body.data;
++    }
++    return response;
++  },
++  (error: AxiosError<BackendEnvelope<unknown>>) => {
++    if (error.response?.status === 401) {
+       clearToken();
+     }
+-    return Promise.reject(error);
++    const apiError: ApiError = {
++      message:
++        error.response?.data?.message ?? error.message ?? "Something went wrong. Please try again.",
++      code: error.response?.data?.code ?? undefined,
++      status: error.response?.status,
++      details: error.response?.data?.details ?? undefined,
++    };
++    return Promise.reject(apiError);
+   },
+ );
+diff --git a/src/hooks/useAuth.tsx b/src/hooks/useAuth.tsx
+index 3d6b052..e18a8c1 100644
+--- a/src/hooks/useAuth.tsx
++++ b/src/hooks/useAuth.tsx
+@@ -1,12 +1,15 @@
+ import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+ import type { ReactNode } from "react";
+-import { clearToken, setToken } from "@/api/client";
++import { me } from "@/api/auth";
++import { clearToken, getToken, setToken } from "@/api/client";
+ import type { Role, User } from "@/data/types";
+ 
+ /**
+- * Session state for the frontend. Today it persists a mock user locally; once
+- * the Spring Boot API is connected, `signIn` receives { token, user } from
+- * src/api/auth.ts and nothing else has to change.
++ * Session state for the frontend, backed by the real Spring Boot API.
++ * On load, a cached user is shown immediately (if any) and then confirmed
++ * against GET /auth/me; an invalid/expired token signs the session out.
++ * `signIn` is called by /login and /register with the mapped { user, token }
++ * from src/api/auth.ts.
+  */
+ 
+ const USER_KEY = "foodrush.user";
+@@ -26,14 +29,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
+   const [user, setUser] = useState<User | null>(null);
+   const [isReady, setIsReady] = useState(false);
+ 
++  const signOut = useCallback(() => {
++    setUser(null);
++    window.localStorage.removeItem(USER_KEY);
++    clearToken();
++  }, []);
++
+   useEffect(() => {
+-    try {
+-      const raw = window.localStorage.getItem(USER_KEY);
+-      if (raw) setUser(JSON.parse(raw) as User);
+-    } catch {
+-      window.localStorage.removeItem(USER_KEY);
++    let cancelled = false;
++
++    async function bootstrap() {
++      let cached: User | null = null;
++      try {
++        const raw = window.localStorage.getItem(USER_KEY);
++        if (raw) cached = JSON.parse(raw) as User;
++      } catch {
++        window.localStorage.removeItem(USER_KEY);
++      }
++
++      const token = getToken();
++      if (!token) {
++        if (!cancelled) setIsReady(true);
++        return;
++      }
++
++      // Show the cached user immediately, then confirm the token is still
++      // valid (and pick up any account changes) against the backend.
++      if (cached && !cancelled) setUser(cached);
++
++      try {
++        const fresh = await me();
++        if (!cancelled) {
++          setUser(fresh);
++          window.localStorage.setItem(USER_KEY, JSON.stringify(fresh));
++        }
++      } catch {
++        // Invalid/expired token — the response interceptor already clears it
++        // on a 401; make sure local session state matches.
++        if (!cancelled) {
++          setUser(null);
++          window.localStorage.removeItem(USER_KEY);
++        }
++      } finally {
++        if (!cancelled) setIsReady(true);
++      }
+     }
+-    setIsReady(true);
++
++    bootstrap();
++    return () => {
++      cancelled = true;
++    };
+   }, []);
+ 
+   const signIn = useCallback((nextUser: User, token?: string) => {
+@@ -42,12 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
+     if (token) setToken(token);
+   }, []);
+ 
+-  const signOut = useCallback(() => {
+-    setUser(null);
+-    window.localStorage.removeItem(USER_KEY);
+-    clearToken();
+-  }, []);
+-
+   const value = useMemo<AuthContextValue>(
+     () => ({
+       user,
+diff --git a/src/routes/login.tsx b/src/routes/login.tsx
+index ed52478..d3b88e2 100644
+--- a/src/routes/login.tsx
++++ b/src/routes/login.tsx
+@@ -1,5 +1,10 @@
+-import { createFileRoute } from "@tanstack/react-router";
++import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
++import { useMutation } from "@tanstack/react-query";
++import { useState } from "react";
+ import { AppShell } from "@/components/AppShell";
++import { login } from "@/api/auth";
++import { isApiError } from "@/api/client";
++import { useAuth } from "@/hooks/useAuth";
+ 
+ export const Route = createFileRoute("/login")({
+   head: () => ({
+@@ -10,12 +15,94 @@ export const Route = createFileRoute("/login")({
+       { property: "og:description", content: "Login on FoodRush, Lagos food delivery." },
+     ],
+   }),
+-  component: () => (
++  component: LoginPage,
++});
++
++function LoginPage() {
++  const { signIn } = useAuth();
++  const navigate = useNavigate();
++  const [email, setEmail] = useState("");
++  const [password, setPassword] = useState("");
++  const [error, setError] = useState<string | null>(null);
++
++  const mutation = useMutation({
++    mutationFn: login,
++    onSuccess: ({ user, token }) => {
++      signIn(user, token);
++      navigate({ to: "/" });
++    },
++    onError: (err) => {
++      setError(isApiError(err) ? err.message : "Something went wrong. Please try again.");
++    },
++  });
++
++  function handleSubmit(event: React.FormEvent) {
++    event.preventDefault();
++    setError(null);
++    mutation.mutate({ email: email.trim().toLowerCase(), password });
++  }
++
++  return (
+     <AppShell>
+-      <section className="container-page py-16">
+-        <h1 className="font-display text-3xl font-bold">Login</h1>
+-        <p className="mt-2 text-muted-foreground">This page is coming next.</p>
++      <section className="container-page flex justify-center py-16">
++        <form
++          onSubmit={handleSubmit}
++          className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-soft"
++        >
++          <h1 className="font-display text-3xl font-bold">Welcome back</h1>
++          <p className="mt-2 text-sm text-muted-foreground">
++            Log in to order from your favorite kitchens.
++          </p>
++
++          <div className="mt-6 space-y-4">
++            <label className="block text-sm">
++              <span className="font-semibold">Email</span>
++              <input
++                type="email"
++                value={email}
++                required
++                autoComplete="email"
++                placeholder="you@example.com"
++                onChange={(event) => setEmail(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++            <label className="block text-sm">
++              <span className="font-semibold">Password</span>
++              <input
++                type="password"
++                value={password}
++                required
++                autoComplete="current-password"
++                placeholder="••••••••"
++                onChange={(event) => setPassword(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++          </div>
++
++          {error && (
++            <p className="mt-4 rounded-xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
++              {error}
++            </p>
++          )}
++
++          <button
++            type="submit"
++            disabled={mutation.isPending}
++            className="mt-6 w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-70"
++          >
++            {mutation.isPending ? "Logging in…" : "Log in"}
++          </button>
++
++          <p className="mt-5 text-center text-sm text-muted-foreground">
++            New to FoodRush?{" "}
++            <Link to="/register" className="font-semibold text-foreground hover:underline">
++              Create an account
++            </Link>
++          </p>
++        </form>
+       </section>
+     </AppShell>
+-  ),
+-});
++  );
++}
+diff --git a/src/routes/register.tsx b/src/routes/register.tsx
+index 19400a8..c2be060 100644
+--- a/src/routes/register.tsx
++++ b/src/routes/register.tsx
+@@ -1,5 +1,10 @@
+-import { createFileRoute } from "@tanstack/react-router";
++import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
++import { useMutation } from "@tanstack/react-query";
++import { useState } from "react";
+ import { AppShell } from "@/components/AppShell";
++import { register } from "@/api/auth";
++import { isApiError } from "@/api/client";
++import { useAuth } from "@/hooks/useAuth";
+ 
+ export const Route = createFileRoute("/register")({
+   head: () => ({
+@@ -10,12 +15,132 @@ export const Route = createFileRoute("/register")({
+       { property: "og:description", content: "Register on FoodRush, Lagos food delivery." },
+     ],
+   }),
+-  component: () => (
++  component: RegisterPage,
++});
++
++function RegisterPage() {
++  const { signIn } = useAuth();
++  const navigate = useNavigate();
++  const [name, setName] = useState("");
++  const [email, setEmail] = useState("");
++  const [phone, setPhone] = useState("");
++  const [password, setPassword] = useState("");
++  const [error, setError] = useState<string | null>(null);
++
++  const mutation = useMutation({
++    // New signups are always CUSTOMER accounts here — restaurant/rider/admin
++    // onboarding is a later phase (see backend AuthService, which also
++    // rejects self-registering as ADMIN).
++    mutationFn: register,
++    onSuccess: ({ user, token }) => {
++      signIn(user, token);
++      navigate({ to: "/" });
++    },
++    onError: (err) => {
++      setError(isApiError(err) ? err.message : "Something went wrong. Please try again.");
++    },
++  });
++
++  function handleSubmit(event: React.FormEvent) {
++    event.preventDefault();
++    setError(null);
++    if (password.length < 8) {
++      setError("Password must be at least 8 characters.");
++      return;
++    }
++    mutation.mutate({
++      name: name.trim(),
++      email: email.trim().toLowerCase(),
++      phone: phone.trim() || undefined,
++      password,
++    });
++  }
++
++  return (
+     <AppShell>
+-      <section className="container-page py-16">
+-        <h1 className="font-display text-3xl font-bold">Register</h1>
+-        <p className="mt-2 text-muted-foreground">This page is coming next.</p>
++      <section className="container-page flex justify-center py-16">
++        <form
++          onSubmit={handleSubmit}
++          className="w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-soft"
++        >
++          <h1 className="font-display text-3xl font-bold">Create your account</h1>
++          <p className="mt-2 text-sm text-muted-foreground">
++            Order Lagos's best food, delivered fast.
++          </p>
++
++          <div className="mt-6 space-y-4">
++            <label className="block text-sm">
++              <span className="font-semibold">Full name</span>
++              <input
++                value={name}
++                required
++                minLength={2}
++                autoComplete="name"
++                placeholder="Ada Obi"
++                onChange={(event) => setName(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++            <label className="block text-sm">
++              <span className="font-semibold">Email</span>
++              <input
++                type="email"
++                value={email}
++                required
++                autoComplete="email"
++                placeholder="you@example.com"
++                onChange={(event) => setEmail(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++            <label className="block text-sm">
++              <span className="font-semibold">Phone</span>
++              <input
++                type="tel"
++                value={phone}
++                autoComplete="tel"
++                placeholder="080…"
++                onChange={(event) => setPhone(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++            <label className="block text-sm">
++              <span className="font-semibold">Password</span>
++              <input
++                type="password"
++                value={password}
++                required
++                minLength={8}
++                autoComplete="new-password"
++                placeholder="At least 8 characters"
++                onChange={(event) => setPassword(event.target.value)}
++                className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
++              />
++            </label>
++          </div>
++
++          {error && (
++            <p className="mt-4 rounded-xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
++              {error}
++            </p>
++          )}
++
++          <button
++            type="submit"
++            disabled={mutation.isPending}
++            className="mt-6 w-full rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-glow transition-transform hover:-translate-y-0.5 disabled:pointer-events-none disabled:opacity-70"
++          >
++            {mutation.isPending ? "Creating account…" : "Create account"}
++          </button>
++
++          <p className="mt-5 text-center text-sm text-muted-foreground">
++            Already have an account?{" "}
++            <Link to="/login" className="font-semibold text-foreground hover:underline">
++              Log in
++            </Link>
++          </p>
++        </form>
+       </section>
+     </AppShell>
+-  ),
+-});
++  );
++}
+-- 
+2.43.0
+

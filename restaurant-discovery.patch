@@ -1,0 +1,360 @@
+From 42320a35fbc4333e15ce5b1858a97fd0499cee42 Mon Sep 17 00:00:00 2001
+From: NBG-TOPGEE <NBG-TOPGEE@users.noreply.github.com>
+Date: Thu, 27 Aug 2026 00:49:21 +0000
+Subject: [PATCH] Integrate restaurant discovery with Spring Boot backend
+
+- src/api/restaurants.ts: getRestaurants()/getRestaurant() now call the
+  real GET /api/restaurants (unwraps items/total/page/limit/pages) and
+  GET /api/restaurants/{id} (unwraps restaurant/menu/reviewCount).
+  Removed getFeaturedRestaurants(), which hit a nonexistent
+  /restaurants/featured endpoint and had no callers.
+- src/api/menu.ts: getMenu() calls the real
+  GET /api/restaurants/{id}/menu. Removed getMenuItem(), which hit a
+  nonexistent single-item endpoint and had no callers. Added
+  getMenuItemCategories() for GET /api/categories (menu-item category
+  counts) for future use - see note below.
+- src/hooks/queries.ts: restaurantsQuery/restaurantQuery/menuQuery now
+  call the real API instead of filtering mock data. categoriesQuery,
+  popularItemsQuery, ordersQuery and addressesQuery are unchanged
+  (mock) - later phases.
+
+Backend limitations documented in code comments rather than papered
+over with invented data:
+- Restaurant has one cuisine string, not the multi-tag category
+  taxonomy the discovery chips use, and no per-restaurant minOrder or
+  distanceKm (no geolocation in this app). The category filter is
+  passed through as a best-effort 'cuisine' query param, minOrder
+  defaults to 0, distanceKm to 0.
+- deliveryTimeMinutes is a single estimate, not a range - the UI's
+  delivery window is approximated as [estimate, estimate+10].
+- MenuItem's restaurant relation is @JsonIgnore'd server-side, so
+  restaurantId is injected client-side from the query, not read off
+  each item.
+- Jackson serializes isOpen()/isAvailable() as 'open'/'available'
+  (boolean getter naming), not 'isOpen'/'isAvailable' - mappers use
+  the real key names.
+- GET /api/categories aggregates menu-item categories with counts,
+  a different concept from the curated cuisine tiles on the homepage/
+  discovery page; left on mock data (mockCategories) rather than
+  wired to a mismatched endpoint.
+
+tsc --noEmit and npm run build both pass; the one remaining tsc error
+(orders.local.ts) is pre-existing on main and unrelated.
+---
+ src/api/menu.ts        |  60 +++++++++++++++++---
+ src/api/restaurants.ts | 122 +++++++++++++++++++++++++++++++++++++----
+ src/hooks/queries.ts   |  66 +++++-----------------
+ 3 files changed, 176 insertions(+), 72 deletions(-)
+
+diff --git a/src/api/menu.ts b/src/api/menu.ts
+index 8e6ffe6..0b3689a 100644
+--- a/src/api/menu.ts
++++ b/src/api/menu.ts
+@@ -1,17 +1,59 @@
+ import { api } from "./client";
+ import type { MenuItem } from "@/data/types";
+ 
+-export async function getMenu(restaurantId: string) {
+-  const { data } = await api.get<MenuItem[]>(`/restaurants/${restaurantId}/menu`);
+-  return data;
++/**
++ * Menu + categories, matching:
++ *   GET /api/restaurants/{id}/menu -> { restaurantId, items }
++ *   GET /api/categories -> { categories: [{ name, itemCount }] }
++ * See com.foodrush.entity.MenuItem / RestaurantService.categories().
++ */
++
++type BackendMenuItem = {
++  id: number;
++  name: string;
++  description: string | null;
++  price: number;
++  category: string | null;
++  imageUrl: string | null;
++  // Jackson serializes the isAvailable() getter as "available".
++  available: boolean;
++  options: { id: number; name: string; price: number; available: boolean }[];
++};
++
++type MenuResponse = { restaurantId: number; items: BackendMenuItem[] };
++
++function toMenuItem(item: BackendMenuItem, restaurantId: string): MenuItem {
++  return {
++    id: String(item.id),
++    // The backend's MenuItem->Restaurant relation is @JsonIgnore'd, so each
++    // item has no restaurantId of its own in the response — pass in the id
++    // we already fetched the menu for instead of reading it off the item.
++    restaurantId,
++    name: item.name,
++    description: item.description ?? "",
++    price: item.price,
++    imageUrl: item.imageUrl ?? "",
++    // Frontend calls this grouping field "section"; backend calls it "category".
++    section: item.category || "Menu",
++    // tags/popular/spicy aren't modeled on the backend — left undefined,
++    // which FoodCard already renders gracefully.
++  };
+ }
+ 
+-export async function getMenuItem(restaurantId: string, itemId: string) {
+-  const { data } = await api.get<MenuItem>(`/restaurants/${restaurantId}/menu/${itemId}`);
+-  return data;
++export async function getMenu(restaurantId: string): Promise<MenuItem[]> {
++  const { data } = await api.get<MenuResponse>(`/restaurants/${restaurantId}/menu`);
++  return data.items.map((item) => toMenuItem(item, restaurantId));
+ }
+ 
+-export async function getCategories() {
+-  const { data } = await api.get<{ id: string; name: string }[]>("/categories");
+-  return data;
++type BackendCategory = { name: string; itemCount: number };
++
++/**
++ * NOTE: this is menu-item category aggregation (item counts across every
++ * restaurant's menu), not the curated cuisine taxonomy (with slugs/emojis)
++ * the homepage/discovery chips use — those two concepts don't map 1:1. See
++ * hooks/queries.ts for how the chips are handled until that's reconciled.
++ */
++export async function getMenuItemCategories() {
++  const { data } = await api.get<{ categories: BackendCategory[] }>("/categories");
++  return data.categories;
+ }
+diff --git a/src/api/restaurants.ts b/src/api/restaurants.ts
+index 1f5c7dc..4adebdf 100644
+--- a/src/api/restaurants.ts
++++ b/src/api/restaurants.ts
+@@ -1,24 +1,126 @@
+ import { api } from "./client";
+ import type { Restaurant } from "@/data/types";
+ 
++/**
++ * Restaurant discovery, matching the real Spring Boot endpoints:
++ *   GET /api/restaurants  -> { items, total, page, limit, pages }
++ *   GET /api/restaurants/{id} -> { restaurant, menu, reviewCount }
++ * See com.foodrush.controller.RestaurantController / entity.Restaurant.
++ *
++ * Backend limitations (see notes on the mapper below) mean a few fields the
++ * existing UI expects — minOrder, distanceKm, a delivery *window*, multiple
++ * cuisine tags — aren't modeled server-side yet. Rather than inventing that
++ * data, these are approximated/defaulted and called out explicitly so they
++ * can be revisited once the backend supports them.
++ */
++
+ export type RestaurantQuery = {
+   search?: string;
+   category?: string;
+-  sort?: string;
++  sort?: "nearest" | "rating" | "delivery-time" | "delivery-fee" | string;
+   minRating?: number;
+ };
+ 
+-export async function getRestaurants(params: RestaurantQuery = {}) {
+-  const { data } = await api.get<Restaurant[]>("/restaurants", { params });
+-  return data;
++type BackendRestaurant = {
++  id: number;
++  ownerId: number | null;
++  name: string;
++  description: string | null;
++  cuisine: string;
++  imageUrl: string | null;
++  address: string;
++  city: string;
++  phone: string | null;
++  rating: number;
++  ratingCount: number;
++  deliveryFee: number;
++  deliveryTimeMinutes: number;
++  // Jackson serializes boolean getters isOpen()/isApproved() by stripping
++  // "is", so the JSON keys are "open"/"approved", not "isOpen"/"isApproved".
++  open: boolean;
++  approved: boolean;
++};
++
++type RestaurantListResponse = {
++  items: BackendRestaurant[];
++  total: number;
++  page: number;
++  limit: number;
++  pages: number;
++};
++
++type RestaurantDetailResponse = {
++  restaurant: BackendRestaurant;
++  menu: unknown[];
++  reviewCount: number;
++};
++
++function toRestaurant(r: BackendRestaurant, reviewCount = 0): Restaurant {
++  return {
++    id: String(r.id),
++    name: r.name,
++    tagline: r.description?.trim() || `${r.cuisine} kitchen in ${r.city}`,
++    imageUrl: r.imageUrl ?? "",
++    // The backend models a single cuisine per restaurant, not the curated
++    // multi-tag taxonomy the discovery page's category chips use — see
++    // hooks/queries.ts for how that mismatch is handled today.
++    categories: [r.cuisine],
++    rating: r.rating,
++    reviewCount,
++    // The backend only stores one estimate (deliveryTimeMinutes); approximate
++    // a display window around it rather than inventing a separate range.
++    deliveryMinutes: [r.deliveryTimeMinutes, r.deliveryTimeMinutes + 10],
++    deliveryFee: r.deliveryFee,
++    // Not modeled on the backend yet (no per-restaurant minimum order).
++    minOrder: 0,
++    // Not modeled on the backend yet (no user geolocation / distance calc).
++    distanceKm: 0,
++    area: r.city,
++    isOpen: r.open,
++  };
++}
++
++function backendSort(sort?: string): string | undefined {
++  if (sort === "delivery-time") return "delivery_time";
++  if (sort === "rating") return "rating";
++  // "nearest" (no distance data server-side) and "delivery-fee" (no backend
++  // sort key) fall back to the default and are sorted client-side below.
++  return undefined;
+ }
+ 
+-export async function getRestaurant(id: string) {
+-  const { data } = await api.get<Restaurant>(`/restaurants/${id}`);
+-  return data;
++export async function getRestaurants(params: RestaurantQuery = {}): Promise<Restaurant[]> {
++  const { data } = await api.get<RestaurantListResponse>("/restaurants", {
++    params: {
++      q: params.search || undefined,
++      cuisine: params.category || undefined,
++      sort: backendSort(params.sort),
++      page: 1,
++      // No pagination UI exists yet (Phase 3 scope is discovery, not
++      // paging); fetch a generous page so existing list views keep working.
++      limit: 50,
++    },
++  });
++
++  let items = data.items.map((r) => toRestaurant(r));
++
++  if (params.minRating) {
++    items = items.filter((r) => r.rating >= params.minRating!);
++  }
++  if (params.sort === "delivery-fee") {
++    items = [...items].sort((a, b) => a.deliveryFee - b.deliveryFee);
++  }
++
++  return items;
+ }
+ 
+-export async function getFeaturedRestaurants() {
+-  const { data } = await api.get<Restaurant[]>("/restaurants/featured");
+-  return data;
++export async function getRestaurant(id: string): Promise<Restaurant | null> {
++  try {
++    const { data } = await api.get<RestaurantDetailResponse>(`/restaurants/${id}`);
++    return toRestaurant(data.restaurant, data.reviewCount);
++  } catch (error) {
++    if (error && typeof error === "object" && "status" in error && error.status === 404) {
++      return null;
++    }
++    throw error;
++  }
+ }
+diff --git a/src/hooks/queries.ts b/src/hooks/queries.ts
+index 3015fe8..d8f9874 100644
+--- a/src/hooks/queries.ts
++++ b/src/hooks/queries.ts
+@@ -1,77 +1,37 @@
+ import { queryOptions } from "@tanstack/react-query";
+-import type { RestaurantQuery } from "@/api/restaurants";
+-import {
+-  mockAddresses,
+-  mockCategories,
+-  mockMenu,
+-  mockOrders,
+-  mockPopularItems,
+-  mockRestaurants,
+-} from "@/data/mock";
+-import type { MenuItem, Restaurant } from "@/data/types";
++import { getMenu } from "@/api/menu";
++import { getRestaurant, getRestaurants, type RestaurantQuery } from "@/api/restaurants";
++import { mockAddresses, mockCategories, mockOrders, mockPopularItems } from "@/data/mock";
+ 
+ /**
+- * Query layer. Each queryFn currently resolves mock data; swapping in the
+- * matching function from src/api/* is the whole backend integration step.
++ * Query layer. Restaurant discovery, restaurant detail, and menu now call
++ * the real Spring Boot API (see src/api/restaurants.ts, src/api/menu.ts).
+  *
+- *   queryFn: () => getRestaurants(params)
++ * categories/popular-items/orders/addresses are still mock — later
++ * integration phases (see PROJECT.md-style brief: categories don't map 1:1
++ * onto the backend's per-menu-item category counts, and orders/addresses
++ * are their own phases).
+  */
+ 
+-const delay = <T,>(value: T, ms = 350) =>
++const delay = <T>(value: T, ms = 350) =>
+   new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
+ 
+-function filterRestaurants(params: RestaurantQuery): Restaurant[] {
+-  const search = params.search?.trim().toLowerCase();
+-  let list = [...mockRestaurants];
+-
+-  if (search) {
+-    list = list.filter(
+-      (restaurant) =>
+-        restaurant.name.toLowerCase().includes(search) ||
+-        restaurant.tagline.toLowerCase().includes(search) ||
+-        restaurant.area.toLowerCase().includes(search),
+-    );
+-  }
+-  if (params.category) {
+-    list = list.filter((restaurant) => restaurant.categories.includes(params.category!));
+-  }
+-  if (params.minRating) {
+-    list = list.filter((restaurant) => restaurant.rating >= params.minRating!);
+-  }
+-
+-  switch (params.sort) {
+-    case "rating":
+-      list.sort((a, b) => b.rating - a.rating);
+-      break;
+-    case "delivery-time":
+-      list.sort((a, b) => a.deliveryMinutes[0] - b.deliveryMinutes[0]);
+-      break;
+-    case "delivery-fee":
+-      list.sort((a, b) => a.deliveryFee - b.deliveryFee);
+-      break;
+-    default:
+-      list.sort((a, b) => a.distanceKm - b.distanceKm);
+-  }
+-
+-  return list;
+-}
+-
+ export const restaurantsQuery = (params: RestaurantQuery = {}) =>
+   queryOptions({
+     queryKey: ["restaurants", params],
+-    queryFn: () => delay(filterRestaurants(params)),
++    queryFn: () => getRestaurants(params),
+   });
+ 
+ export const restaurantQuery = (id: string) =>
+   queryOptions({
+     queryKey: ["restaurant", id],
+-    queryFn: () => delay(mockRestaurants.find((restaurant) => restaurant.id === id) ?? null),
++    queryFn: () => getRestaurant(id),
+   });
+ 
+ export const menuQuery = (restaurantId: string) =>
+   queryOptions({
+     queryKey: ["menu", restaurantId],
+-    queryFn: () => delay<MenuItem[]>(mockMenu(restaurantId)),
++    queryFn: () => getMenu(restaurantId),
+   });
+ 
+ export const categoriesQuery = () =>
+-- 
+2.43.0
+
