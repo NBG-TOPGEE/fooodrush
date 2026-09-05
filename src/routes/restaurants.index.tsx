@@ -2,7 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { CardSkeletonGrid, EmptyState } from "@/components/EmptyState";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorState } from "@/components/ErrorState";
+import { RestaurantCardSkeletonGrid } from "@/components/skeletons";
+
 import { CategoryChip } from "@/components/CategoryChip";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { categoriesQuery, restaurantsQuery } from "@/hooks/queries";
