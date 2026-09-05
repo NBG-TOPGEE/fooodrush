@@ -63,6 +63,15 @@ function DiscoveryPage() {
 
   const activeFilters = Boolean(q || category || (sort && sort !== "nearest"));
 
+  // Open kitchens first — closed ones stay browsable at the end of the grid.
+  const ordered = useMemo(() => {
+    const list = restaurants.data ?? [];
+    return [...list].sort((a, b) => Number(b.isOpen) - Number(a.isOpen));
+  }, [restaurants.data]);
+  const openCount = ordered.filter((restaurant) => restaurant.isOpen).length;
+  const closedCount = ordered.length - openCount;
+
+
   return (
     <AppShell>
       <section className="border-b border-border bg-card/60">
