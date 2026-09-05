@@ -161,18 +161,32 @@ function DiscoveryPage() {
 
       <section className="container-page py-8 md:py-12">
         {restaurants.isPending ? (
-          <CardSkeletonGrid count={6} />
-        ) : restaurants.data && restaurants.data.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {restaurants.data.map((restaurant) => (
-              <RestaurantCard
-                key={restaurant.id}
-                restaurant={restaurant}
-                isFavorite={favorites.isFavorite(restaurant.id)}
-                onToggleFavorite={favorites.toggle}
-              />
-            ))}
-          </div>
+          <RestaurantCardSkeletonGrid count={6} />
+        ) : restaurants.isError ? (
+          <ErrorState
+            title="We couldn't load restaurants"
+            description="Your connection dropped while fetching kitchens near you. Try again in a moment."
+            onRetry={() => void restaurants.refetch()}
+          />
+        ) : ordered.length > 0 ? (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {ordered.map((restaurant) => (
+                <RestaurantCard
+                  key={restaurant.id}
+                  restaurant={restaurant}
+                  isFavorite={favorites.isFavorite(restaurant.id)}
+                  onToggleFavorite={favorites.toggle}
+                />
+              ))}
+            </div>
+            {closedCount > 0 && (
+              <p className="mt-6 text-sm text-muted-foreground">
+                {closedCount} kitchen{closedCount === 1 ? " is" : "s are"} currently closed — you can
+                still browse their menu and order when they reopen.
+              </p>
+            )}
+          </>
         ) : (
           <EmptyState
             emoji="🔎"
@@ -190,6 +204,7 @@ function DiscoveryPage() {
           />
         )}
       </section>
+
     </AppShell>
   );
 }
